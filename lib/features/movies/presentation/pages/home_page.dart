@@ -1,77 +1,23 @@
-import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../../core/network/custom_dio/custom_dio.dart';
-import '../../../../core/utils/constants.dart';
-import '../../../../core/utils/result.dart';
-import '../../data/datasources/movies_remote_data_source_impl.dart';
-import '../../data/infra/tmdb_movies_repository_impl.dart';
 import '../../domain/entities/movie_entity.dart';
-import '../../domain/entities/movie_page_response_entity.dart';
+import '../notifiers/home_notifier.dart';
 
-class HomePage extends StatefulWidget {
+class HomePage extends ConsumerStatefulWidget {
   const HomePage({super.key});
 
   @override
-  State<HomePage> createState() => _HomePageState();
+  ConsumerState<HomePage> createState() => _HomePageState();
 }
 
-class _HomePageState extends State<HomePage> {
-  List<MovieEntity> _nowPlayingMovies = const <MovieEntity>[];
-  List<MovieEntity> _popularMovies = const <MovieEntity>[];
-
+class _HomePageState extends ConsumerState<HomePage> {
   @override
   void initState() {
     super.initState();
-    _runTests();
-  }
-
-  Future<void> _runTests() async {
-    if (Settings.tmdbReadAccessToken.isEmpty) {
-      setState(() {
-        _nowPlayingMovies = const <MovieEntity>[];
-        _popularMovies = const <MovieEntity>[];
-      });
-      return;
-    }
-
-    final dio = Dio(
-      BaseOptions(
-        headers: <String, String>{
-          'Authorization': 'Bearer ${Settings.tmdbReadAccessToken}',
-          'Content-Type': 'application/json;charset=utf-8',
-        },
-      ),
+    Future.microtask(
+      () => ref.read(homeNotifierProvider.notifier).fetchMovies(),
     );
-
-    final client = CustomDio(dio, Settings.baseUrl);
-    final datasource = TmdbMoviesRemoteDataSourceImpl(client);
-    final repository = TmdbMoviesRepositoryImpl(datasource);
-
-    final nowPlayingResult = await repository.getNowPlaying();
-    final popularResult = await repository.getPopularMovies();
-
-    final List<MovieEntity> nowPlayingMovies;
-    final List<MovieEntity> popularMovies;
-
-    switch (nowPlayingResult) {
-      case Success<MoviePageResponseEntity>(:final data):
-        nowPlayingMovies = data.results;
-      case Error<MoviePageResponseEntity>():
-        nowPlayingMovies = const <MovieEntity>[];
-    }
-
-    switch (popularResult) {
-      case Success<MoviePageResponseEntity>(:final data):
-        popularMovies = data.results;
-      case Error<MoviePageResponseEntity>():
-        popularMovies = const <MovieEntity>[];
-    }
-
-    setState(() {
-      _nowPlayingMovies = nowPlayingMovies;
-      _popularMovies = popularMovies;
-    });
   }
 
   Widget _buildMovieTile(MovieEntity movie, IconData fallbackIcon) {
@@ -140,26 +86,37 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
+    final state = ref.watch(homeNotifierProvider);
+
     return Scaffold(
-      appBar: AppBar(title: const Text('Movies Repository Test')),
+      appBar: AppBar(title: const Text('Cine Hub')),
       body: Padding(
         padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildMovieSection(
-              title: 'Now Playing',
-              movies: _nowPlayingMovies,
-              fallbackIcon: Icons.local_fire_department_outlined,
-            ),
-            const SizedBox(height: 16),
-            _buildMovieSection(
-              title: 'Popular Movies',
-              movies: _popularMovies,
-              fallbackIcon: Icons.movie_outlined,
-            ),
-          ],
-        ),
+        child: state.isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (state.error != null && state.error!.isNotEmpty) ...[
+                    Text(
+                      state.error!,
+                      style: const TextStyle(color: Colors.redAccent),
+                    ),
+                    const SizedBox(height: 16),
+                  ],
+                  _buildMovieSection(
+                    title: 'Now Playing',
+                    movies: state.nowPlaying,
+                    fallbackIcon: Icons.local_fire_department_outlined,
+                  ),
+                  const SizedBox(height: 16),
+                  _buildMovieSection(
+                    title: 'Popular Movies',
+                    movies: state.popular,
+                    fallbackIcon: Icons.movie_outlined,
+                  ),
+                ],
+              ),
       ),
     );
   }
