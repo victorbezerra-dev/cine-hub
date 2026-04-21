@@ -4,6 +4,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/providers/shared_preferences_provider.dart';
 import '../components/home/empty_section_state.dart';
 import '../components/home/home_app_bar_title.dart';
 import '../components/home/home_error_state.dart';
@@ -11,6 +12,7 @@ import '../components/home/home_inline_error_banner.dart';
 import '../components/home/movie_card.dart';
 import '../components/home/movie_carousel.dart';
 import '../components/home/section_skeleton.dart';
+import '../notifiers/favorites_notifier.dart';
 import '../notifiers/paginated_movie_notifier.dart';
 
 class HomePage extends ConsumerStatefulWidget {
@@ -30,12 +32,16 @@ class _HomePageState extends ConsumerState<HomePage> {
   void initState() {
     super.initState();
 
-    Future.microtask(() async {
-      await Future.wait([
-        ref.read(nowPlayingNotifierProvider.notifier).fetchInitial(),
-        ref.read(popularMoviesNotifierProvider.notifier).fetchInitial(),
-      ]);
-    });
+    Future.microtask(_loadHomeSections);
+  }
+
+  Future<void> _loadHomeSections() async {
+    await ref.read(sharedPreferencesProvider.future);
+
+    await Future.wait([
+      ref.read(nowPlayingNotifierProvider.notifier).fetchInitial(),
+      ref.read(popularMoviesNotifierProvider.notifier).fetchInitial(),
+    ]);
   }
 
   @override
@@ -119,6 +125,7 @@ class _HomePageState extends ConsumerState<HomePage> {
     required IconData fallbackIcon,
     required String sectionKey,
     required bool isLoadingMore,
+    required Set<int> favoriteIds,
   }) {
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -126,7 +133,7 @@ class _HomePageState extends ConsumerState<HomePage> {
         final cardWidth = math.min(170.0, math.max(130.0, screenWidth * 0.40));
         const itemSpacing = 12.0;
 
-        final posterHeight = cardWidth * 1.5;
+        final posterHeight = cardWidth * 1.75;
         final carouselHeight = posterHeight + 80;
         final controller = _getCarouselController(sectionKey);
 
@@ -150,6 +157,10 @@ class _HomePageState extends ConsumerState<HomePage> {
             fallbackIcon: fallbackIcon,
             sectionKey: sectionKey,
             cardWidth: cardWidth,
+            isFavorite: favoriteIds.contains(movies[index].id),
+            onFavoriteTap: () => ref
+                .read(favoritesNotifierProvider.notifier)
+                .toggleFavorite(movies[index].id),
             onTap: () {},
           ),
         );
@@ -169,16 +180,14 @@ class _HomePageState extends ConsumerState<HomePage> {
   }
 
   Future<void> _refreshAll() async {
-    await Future.wait([
-      ref.read(nowPlayingNotifierProvider.notifier).fetchInitial(),
-      ref.read(popularMoviesNotifierProvider.notifier).fetchInitial(),
-    ]);
+    await _loadHomeSections();
   }
 
   @override
   Widget build(BuildContext context) {
     final nowPlayingState = ref.watch(nowPlayingNotifierProvider);
     final popularState = ref.watch(popularMoviesNotifierProvider);
+    final favoriteIds = ref.watch(favoritesNotifierProvider);
 
     final isInitialLoading =
         nowPlayingState.isLoading && popularState.isLoading;
@@ -218,6 +227,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                         fallbackIcon: Icons.local_fire_department_outlined,
                         sectionKey: 'now_playing',
                         isLoadingMore: nowPlayingState.isLoadingMore,
+                        favoriteIds: favoriteIds,
                       ),
                       const SizedBox(height: 28),
                       _buildMovieCarousel(
@@ -226,6 +236,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                         fallbackIcon: Icons.movie_outlined,
                         sectionKey: 'popular_movies',
                         isLoadingMore: popularState.isLoadingMore,
+                        favoriteIds: favoriteIds,
                       ),
                     ],
                   ),

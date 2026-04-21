@@ -11,6 +11,8 @@ class MovieCard extends StatelessWidget {
     required this.fallbackIcon,
     required this.sectionKey,
     required this.cardWidth,
+    required this.isFavorite,
+    required this.onFavoriteTap,
     this.onTap,
   });
 
@@ -18,11 +20,14 @@ class MovieCard extends StatelessWidget {
   final IconData fallbackIcon;
   final String sectionKey;
   final double cardWidth;
+  final bool isFavorite;
+  final VoidCallback onFavoriteTap;
   final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     final heroTag = '$sectionKey-${movie.id}';
+    final posterHeight = cardWidth * 1.5;
 
     return GestureDetector(
       onTap: onTap,
@@ -30,13 +35,14 @@ class MovieCard extends StatelessWidget {
         width: cardWidth,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
           children: [
             Hero(
               tag: heroTag,
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(18),
-                child: AspectRatio(
-                  aspectRatio: 2 / 3,
+                child: SizedBox(
+                  height: posterHeight,
                   child: movie.posterUrl != null && movie.posterUrl!.isNotEmpty
                       ? Image.network(
                           movie.posterUrl!,
@@ -55,16 +61,39 @@ class MovieCard extends StatelessWidget {
                 ),
               ),
             ),
-            const SizedBox(height: 10),
-            Text(
-              movie.title,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: Theme.of(
-                context,
-              ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
+            const SizedBox(height: 8),
+            SizedBox(
+              height: 28,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  IconButton(
+                    onPressed: onFavoriteTap,
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                    visualDensity: VisualDensity.compact,
+                    icon: Icon(
+                      isFavorite ? Icons.favorite : Icons.favorite_border,
+                      color: isFavorite ? Colors.redAccent : Colors.white70,
+                      size: 20,
+                    ),
+                  ),
+                ],
+              ),
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: 6),
+            SizedBox(
+              height: 40,
+              child: Text(
+                movie.title,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(
+                  context,
+                ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
+              ),
+            ),
+            const SizedBox(height: 6),
             Text(
               movie.releaseDate.isEmpty
                   ? 'Release date unavailable'
