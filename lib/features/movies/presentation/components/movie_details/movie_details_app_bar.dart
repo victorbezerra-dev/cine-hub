@@ -10,6 +10,7 @@ class MovieDetailsAppBar extends StatelessWidget {
     super.key,
     required this.heroTag,
     required this.movieId,
+    required this.reloadVersion,
     required this.paletteColor,
     required this.isFavorite,
     required this.onFavoriteTap,
@@ -19,6 +20,7 @@ class MovieDetailsAppBar extends StatelessWidget {
 
   final String heroTag;
   final int movieId;
+  final int reloadVersion;
   final Color paletteColor;
   final bool isFavorite;
   final VoidCallback onFavoriteTap;
@@ -48,6 +50,7 @@ class MovieDetailsAppBar extends StatelessWidget {
             if (backdropUrl != null && backdropUrl.isNotEmpty)
               Image.network(
                 backdropUrl,
+                key: ValueKey('backdrop-$movieId-$backdropUrl-$reloadVersion'),
                 fit: BoxFit.cover,
                 errorBuilder: (_, _, _) => Container(color: paletteColor),
               )
@@ -82,6 +85,9 @@ class MovieDetailsAppBar extends StatelessWidget {
                           height: 210,
                           child: posterUrl != null && posterUrl.isNotEmpty
                               ? Image.network(
+                                  key: ValueKey(
+                                    'poster-$movieId-$posterUrl-$reloadVersion',
+                                  ),
                                   posterUrl,
                                   fit: BoxFit.cover,
                                   errorBuilder: (_, _, _) =>

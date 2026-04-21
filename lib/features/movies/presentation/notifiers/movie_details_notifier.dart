@@ -23,7 +23,11 @@ class MovieDetailsNotifier extends StateNotifier<MovieDetailsState> {
   final Future<Result<MovieDetailsEntity>> Function() fetchDetails;
 
   Future<void> load() async {
-    state = state.copyWith(isLoading: true, clearError: true);
+    state = state.copyWith(
+      isLoading: true,
+      clearError: true,
+      reloadVersion: state.reloadVersion + 1,
+    );
 
     final result = await fetchDetails();
 

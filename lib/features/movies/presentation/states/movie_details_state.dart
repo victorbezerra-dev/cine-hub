@@ -6,12 +6,14 @@ class MovieDetailsState {
     this.details,
     this.error,
     this.paletteColorValue,
+    this.reloadVersion = 0,
   });
 
   final bool isLoading;
   final MovieDetailsEntity? details;
   final String? error;
   final int? paletteColorValue;
+  final int reloadVersion;
 
   MovieDetailsState copyWith({
     bool? isLoading,
@@ -20,6 +22,7 @@ class MovieDetailsState {
     bool clearError = false,
     int? paletteColorValue,
     bool clearPalette = false,
+    int? reloadVersion,
   }) {
     return MovieDetailsState(
       isLoading: isLoading ?? this.isLoading,
@@ -28,6 +31,7 @@ class MovieDetailsState {
       paletteColorValue: clearPalette
           ? null
           : paletteColorValue ?? this.paletteColorValue,
+      reloadVersion: reloadVersion ?? this.reloadVersion,
     );
   }
 }

@@ -75,6 +75,7 @@ class _MovieDetailsPageState extends ConsumerState<MovieDetailsPage> {
           MovieDetailsAppBar(
             heroTag: widget.heroTag,
             movieId: widget.movieId,
+            reloadVersion: state.reloadVersion,
             paletteColor: paletteColor,
             isFavorite: isFavorite,
             onFavoriteTap: () => ref
