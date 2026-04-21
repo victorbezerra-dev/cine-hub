@@ -23,6 +23,7 @@ dependencies:
   palette_generator_master: ^1.0.1
   cached_network_image: ^3.4.1
   flutter_launcher_icons: ^0.14.4
+  mocktail: ^1.0.5
 
 dev_dependencies:
   flutter_test:
