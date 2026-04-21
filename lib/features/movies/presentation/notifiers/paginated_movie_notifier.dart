@@ -1,6 +1,7 @@
 import 'package:cine_hub/core/utils/result.dart';
 import 'package:flutter_riverpod/legacy.dart';
 
+import '../../../../core/errors/general_failures.dart';
 import '../../../../core/providers/movies_repository_provider.dart';
 import '../../domain/entities/movie_page_response_entity.dart';
 import '../states/pagined_movies_state.dart';
@@ -46,18 +47,34 @@ class PaginatedMoviesNotifier extends StateNotifier<PaginatedMoviesState> {
     ]).then((values) => values.first as Result<MoviePageResponseEntity>);
 
     switch (result) {
+      case CachedFallbackSuccess<MoviePageResponseEntity>(
+        :final data,
+        :final message,
+      ):
+        state = state.copyWith(
+          movies: data.results,
+          currentPage: data.page,
+          totalPages: data.totalPages,
+          isLoading: false,
+          error: message,
+        );
+
       case Success<MoviePageResponseEntity>(:final data):
         state = state.copyWith(
           movies: data.results,
           currentPage: data.page,
           totalPages: data.totalPages,
           isLoading: false,
+          clearError: true,
         );
 
-      case Error<MoviePageResponseEntity>():
+      case Error<MoviePageResponseEntity>(:final exception):
         state = state.copyWith(
           isLoading: false,
-          error: 'Failed to load $sectionLabel movies',
+          error: _resolveErrorMessage(
+            exception,
+            fallbackMessage: 'Failed to load $sectionLabel movies',
+          ),
         );
     }
   }
@@ -71,16 +88,31 @@ class PaginatedMoviesNotifier extends StateNotifier<PaginatedMoviesState> {
     final result = await fetchPage(page: nextPage);
 
     switch (result) {
+      case CachedFallbackSuccess<MoviePageResponseEntity>(
+        :final data,
+        :final message,
+      ):
+        state = state.copyWith(
+          movies: [...state.movies, ...data.results],
+          currentPage: data.page,
+          totalPages: data.totalPages,
+          error: message,
+        );
+
       case Success<MoviePageResponseEntity>(:final data):
         state = state.copyWith(
           movies: [...state.movies, ...data.results],
           currentPage: data.page,
           totalPages: data.totalPages,
+          clearError: true,
         );
 
-      case Error<MoviePageResponseEntity>():
+      case Error<MoviePageResponseEntity>(:final exception):
         state = state.copyWith(
-          error: 'Failed to load more $sectionLabel movies',
+          error: _resolveErrorMessage(
+            exception,
+            fallbackMessage: 'Failed to load more $sectionLabel movies',
+          ),
         );
     }
 
@@ -93,5 +125,22 @@ class PaginatedMoviesNotifier extends StateNotifier<PaginatedMoviesState> {
     if (state.currentPage >= state.totalPages) return false;
 
     return true;
+  }
+
+  String _resolveErrorMessage(
+    Exception exception, {
+    required String fallbackMessage,
+  }) {
+    final message = switch (exception) {
+      final Failure failure when (failure.message ?? '').trim().isNotEmpty =>
+        failure.message!.trim(),
+      _ => exception.toString().replaceFirst('Exception: ', '').trim(),
+    };
+
+    if (message.isEmpty || message == 'Exception') {
+      return fallbackMessage;
+    }
+
+    return message;
   }
 }

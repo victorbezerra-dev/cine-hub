@@ -4,6 +4,8 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/providers/connectivity_provider.dart';
+import '../../data/infra/tmdb_movies_repository_impl.dart';
 import '../components/home/empty_section_state.dart';
 import '../components/home/home_app_bar_title.dart';
 import '../components/home/home_error_state.dart';
@@ -185,14 +187,24 @@ class _HomePageState extends ConsumerState<HomePage> {
     final nowPlayingState = ref.watch(nowPlayingNotifierProvider);
     final popularState = ref.watch(popularMoviesNotifierProvider);
     final favoriteIds = ref.watch(favoritesNotifierProvider);
+    final isOffline = ref
+        .watch(connectivityStatusProvider)
+        .maybeWhen(data: (value) => !value, orElse: () => false);
 
     final isInitialLoading =
         nowPlayingState.isLoading && popularState.isLoading;
 
-    final combinedError = [
+    final sectionErrors = [
       nowPlayingState.error,
       popularState.error,
-    ].whereType<String>().where((message) => message.isNotEmpty).join('\n');
+    ].whereType<String>().where((message) => message.isNotEmpty);
+
+    final allMovies = [...nowPlayingState.movies, ...popularState.movies];
+    final offlineBannerMessage = isOffline && allMovies.isNotEmpty
+        ? TmdbMoviesRepositoryImpl.offlineMessage
+        : null;
+
+    final combinedError = {...sectionErrors, ?offlineBannerMessage}.join('\n');
 
     final hasOnlyError =
         combinedError.isNotEmpty &&
