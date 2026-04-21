@@ -11,6 +11,10 @@ import 'mappers/movie_page_response_local_mapper.dart';
 class MoviesLocalDataSourceImpl implements MoviesLocalDataSource {
   MoviesLocalDataSourceImpl(this._preferences);
 
+  static const Duration _cacheTtl = Duration(hours: 1);
+  static const String _savedAtField = 'savedAt';
+  static const String _payloadField = 'payload';
+
   final SharedPreferences _preferences;
 
   @override
@@ -25,13 +29,8 @@ class MoviesLocalDataSourceImpl implements MoviesLocalDataSource {
 
   @override
   Future<MovieDetailsEntity?> getMovieDetails(int movieId) async {
-    final rawValue = _preferences.getString(_movieDetailsKey(movieId));
-    if (rawValue == null || rawValue.isEmpty) {
-      return null;
-    }
-
-    final decoded = jsonDecode(rawValue);
-    if (decoded is! Map<String, dynamic>) {
+    final decoded = await _readCacheMap(_movieDetailsKey(movieId));
+    if (decoded == null) {
       return null;
     }
 
@@ -50,20 +49,15 @@ class MoviesLocalDataSourceImpl implements MoviesLocalDataSource {
 
   @override
   Future<void> saveMovieDetails(MovieDetailsEntity response) async {
-    await _preferences.setString(
+    await _writeCacheMap(
       _movieDetailsKey(response.id),
-      jsonEncode(MovieDetailsMapper.toMap(response)),
+      MovieDetailsMapper.toMap(response),
     );
   }
 
   Future<MoviePageResponseEntity?> _read(String key) async {
-    final rawValue = _preferences.getString(key);
-    if (rawValue == null || rawValue.isEmpty) {
-      return null;
-    }
-
-    final decoded = jsonDecode(rawValue);
-    if (decoded is! Map<String, dynamic>) {
+    final decoded = await _readCacheMap(key);
+    if (decoded == null) {
       return null;
     }
 
@@ -71,7 +65,47 @@ class MoviesLocalDataSourceImpl implements MoviesLocalDataSource {
   }
 
   Future<void> _write(String key, MoviePageResponseEntity response) async {
-    final encoded = jsonEncode(MoviePageResponseLocalMapper.toMap(response));
+    await _writeCacheMap(key, MoviePageResponseLocalMapper.toMap(response));
+  }
+
+  Future<Map<String, dynamic>?> _readCacheMap(String key) async {
+    final rawValue = _preferences.getString(key);
+    if (rawValue == null || rawValue.isEmpty) {
+      return null;
+    }
+
+    final decoded = jsonDecode(rawValue);
+    if (decoded is! Map<String, dynamic>) {
+      await _preferences.remove(key);
+      return null;
+    }
+
+    final savedAt = decoded[_savedAtField];
+    final payload = decoded[_payloadField];
+
+    if (savedAt is! int || payload is! Map<String, dynamic>) {
+      await _preferences.remove(key);
+      return null;
+    }
+
+    final expiresAt = DateTime.fromMillisecondsSinceEpoch(
+      savedAt,
+    ).add(_cacheTtl);
+
+    if (DateTime.now().isAfter(expiresAt)) {
+      await _preferences.remove(key);
+      return null;
+    }
+
+    return payload;
+  }
+
+  Future<void> _writeCacheMap(String key, Map<String, dynamic> payload) async {
+    final encoded = jsonEncode({
+      _savedAtField: DateTime.now().millisecondsSinceEpoch,
+      _payloadField: payload,
+    });
+
     await _preferences.setString(key, encoded);
   }
 
