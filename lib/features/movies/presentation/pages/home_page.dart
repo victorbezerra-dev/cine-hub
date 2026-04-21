@@ -25,10 +25,16 @@ class HomePage extends ConsumerStatefulWidget {
 }
 
 class _HomePageState extends ConsumerState<HomePage> {
+  static const double _scrollEndThreshold = 24;
+  static const double _scrollEdgeEpsilon = 8;
+  static const int _autoScrollPreloadLimit = 500;
+
   final Map<String, ScrollController> _carouselControllers =
       <String, ScrollController>{};
 
   final Map<String, Timer> _carouselTimers = <String, Timer>{};
+  final Map<String, bool> _carouselAutoScrollForward = <String, bool>{};
+  final Map<String, bool> _carouselAutoScrollAnimating = <String, bool>{};
 
   @override
   void initState() {
@@ -69,8 +75,10 @@ class _HomePageState extends ConsumerState<HomePage> {
     final controller = _carouselControllers[sectionKey];
     if (controller == null || !controller.hasClients) return;
 
+    if (_carouselAutoScrollAnimating[sectionKey] ?? false) return;
+
     if (controller.position.pixels >=
-        controller.position.maxScrollExtent - 24) {
+        controller.position.maxScrollExtent - _scrollEndThreshold) {
       if (sectionKey == 'now_playing') {
         ref.read(nowPlayingNotifierProvider.notifier).fetchNextPage();
       } else {
@@ -83,9 +91,12 @@ class _HomePageState extends ConsumerState<HomePage> {
     required String sectionKey,
     required double itemExtent,
     required bool enabled,
+    required int loadedItemsCount,
   }) {
     if (!enabled) {
       _carouselTimers.remove(sectionKey)?.cancel();
+      _carouselAutoScrollForward.remove(sectionKey);
+      _carouselAutoScrollAnimating.remove(sectionKey);
       return;
     }
 
@@ -94,6 +105,8 @@ class _HomePageState extends ConsumerState<HomePage> {
     }
 
     final controller = _getCarouselController(sectionKey);
+    _carouselAutoScrollForward.putIfAbsent(sectionKey, () => true);
+    _carouselAutoScrollAnimating.putIfAbsent(sectionKey, () => false);
 
     _carouselTimers[sectionKey] = Timer.periodic(const Duration(seconds: 4), (
       timer,
@@ -103,19 +116,69 @@ class _HomePageState extends ConsumerState<HomePage> {
       final maxScroll = controller.position.maxScrollExtent;
       if (maxScroll <= 0) return;
 
-      final nextOffset = controller.offset + itemExtent;
+      final isMovingForward = _carouselAutoScrollForward[sectionKey] ?? true;
+      final currentOffset = controller.offset;
+      double targetOffset;
 
-      if (nextOffset >= maxScroll) {
-        ref.read(nowPlayingNotifierProvider.notifier).fetchNextPage();
+      if (isMovingForward) {
+        final nextOffset = currentOffset + itemExtent;
+
+        if (nextOffset >= maxScroll - _scrollEdgeEpsilon) {
+          if (loadedItemsCount < _autoScrollPreloadLimit) {
+            ref.read(nowPlayingNotifierProvider.notifier).fetchNextPage();
+          }
+
+          final isAtEnd = currentOffset >= maxScroll - _scrollEdgeEpsilon;
+
+          if (isAtEnd) {
+            _carouselAutoScrollForward[sectionKey] = false;
+            targetOffset = math.max(0, maxScroll - itemExtent);
+          } else {
+            targetOffset = maxScroll;
+          }
+        } else {
+          targetOffset = nextOffset;
+        }
+      } else {
+        final nextOffset = currentOffset - itemExtent;
+
+        if (nextOffset <= _scrollEdgeEpsilon) {
+          final isAtStart = currentOffset <= _scrollEdgeEpsilon;
+
+          if (isAtStart) {
+            _carouselAutoScrollForward[sectionKey] = true;
+            targetOffset = math.min(maxScroll, itemExtent);
+          } else {
+            targetOffset = 0;
+          }
+        } else {
+          targetOffset = nextOffset;
+        }
       }
 
-      final targetOffset = nextOffset >= maxScroll ? maxScroll : nextOffset;
+      if (targetOffset < 0) {
+        targetOffset = 0;
+      }
 
-      controller.animateTo(
-        targetOffset,
-        duration: const Duration(milliseconds: 550),
-        curve: Curves.easeInOut,
-      );
+      if (targetOffset > maxScroll) {
+        targetOffset = maxScroll;
+      }
+
+      if ((targetOffset - currentOffset).abs() < 1) {
+        return;
+      }
+
+      _carouselAutoScrollAnimating[sectionKey] = true;
+
+      controller
+          .animateTo(
+            targetOffset,
+            duration: const Duration(milliseconds: 550),
+            curve: Curves.easeInOut,
+          )
+          .whenComplete(() {
+            _carouselAutoScrollAnimating[sectionKey] = false;
+          });
     });
   }
 
@@ -141,6 +204,7 @@ class _HomePageState extends ConsumerState<HomePage> {
           sectionKey: sectionKey,
           itemExtent: cardWidth + itemSpacing,
           enabled: sectionKey == 'now_playing' && movies.length > 1,
+          loadedItemsCount: movies.length,
         );
 
         return MovieCarousel(
