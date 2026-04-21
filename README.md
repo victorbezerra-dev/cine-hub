@@ -38,6 +38,18 @@ Cine Hub delivers a browsing-first cinema experience built on top of **The Movie
 
 ---
 
+## 🎥 Demo
+<p align="center">
+  <a href="https://www.youtube.com/shorts/pkyHLKgEt6Y">
+    <img src="https://img.youtube.com/vi/pkyHLKgEt6Y/0.jpg" width="600" alt="Watch the video"/>
+  </a>
+</p>
+
+<p align="center">
+  ▶️ Click to watch the demo
+</p>
+
+
 ## ✨ Core Features
 
 - 🎬 Browse **Now Playing** movies
@@ -227,6 +239,16 @@ The details page combines navigation, imagery, and visual feedback to create a m
 ## 🚀 Running the Project
 
 Follow the steps below to configure and run the app locally.
+
+---
+
+## 📦 Download APK
+
+You can download the latest published APK from the release below:
+
+- [Download APK - v1.0.0](https://github.com/victorbezerra-dev/connectify-flow/releases/tag/v1.0.0)
+
+> ⚠️ Make sure to download the APK asset attached to the GitHub release page.
 
 ### Requirements
 
