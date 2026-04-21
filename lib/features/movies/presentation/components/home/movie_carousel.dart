@@ -53,32 +53,51 @@ class MovieCarousel extends StatelessWidget {
         const SizedBox(height: 16),
         SizedBox(
           height: carouselHeight,
-          child: isEmpty
-              ? emptyChild
-              : ListView.separated(
-                  controller: controller,
-                  scrollDirection: Axis.horizontal,
-                  itemCount: itemCount,
-                  separatorBuilder: (_, _) => const SizedBox(width: 12),
-                  itemBuilder: itemBuilder,
-                ),
-        ),
-        if (isLoadingMore) ...[
-          const SizedBox(height: 12),
-          SizedBox(
-            height: carouselHeight,
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: 3,
-              separatorBuilder: (_, _) => const SizedBox(width: 12),
-              itemBuilder: (_, _) => SizedBox(
-                width: loadingCardWidth,
-                child: MovieCardSkeleton(cardWidth: loadingCardWidth),
+          child: Stack(
+            children: [
+              Positioned.fill(
+                child: isEmpty
+                    ? emptyChild
+                    : ListView.separated(
+                        controller: controller,
+                        scrollDirection: Axis.horizontal,
+                        itemCount: itemCount,
+                        separatorBuilder: (_, _) => const SizedBox(width: 12),
+                        itemBuilder: itemBuilder,
+                      ),
               ),
-            ),
+              if (isLoadingMore)
+                Positioned.fill(
+                  child: IgnorePointer(
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.centerRight,
+                          end: Alignment.centerLeft,
+                          colors: [
+                            Colors.black.withValues(alpha: 0.35),
+                            Colors.transparent,
+                          ],
+                        ),
+                      ),
+                      child: Align(
+                        alignment: Alignment.centerRight,
+                        child: Padding(
+                          padding: const EdgeInsets.only(right: 12),
+                          child: SizedBox(
+                            width: loadingCardWidth,
+                            child: MovieCardSkeleton(
+                              cardWidth: loadingCardWidth,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+            ],
           ),
-        ],
+        ),
       ],
     );
   }
