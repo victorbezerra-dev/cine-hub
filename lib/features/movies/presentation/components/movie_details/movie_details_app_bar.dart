@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../../../core/widgets/app_network_image.dart';
 import '../../../domain/entities/movie_details_entity.dart';
 import '../../../domain/entities/movie_entity.dart';
 import '../home/poster_fallback.dart';
@@ -48,11 +49,12 @@ class MovieDetailsAppBar extends StatelessWidget {
           fit: StackFit.expand,
           children: [
             if (backdropUrl != null && backdropUrl.isNotEmpty)
-              Image.network(
-                backdropUrl,
+              AppNetworkImage(
+                imageUrl: backdropUrl,
                 key: ValueKey('backdrop-$movieId-$backdropUrl-$reloadVersion'),
                 fit: BoxFit.cover,
-                errorBuilder: (_, _, _) => Container(color: paletteColor),
+                errorWidget: Container(color: paletteColor),
+                placeholder: Container(color: paletteColor),
               )
             else
               Container(color: paletteColor),
@@ -84,14 +86,18 @@ class MovieDetailsAppBar extends StatelessWidget {
                           width: 140,
                           height: 210,
                           child: posterUrl != null && posterUrl.isNotEmpty
-                              ? Image.network(
+                              ? AppNetworkImage(
                                   key: ValueKey(
                                     'poster-$movieId-$posterUrl-$reloadVersion',
                                   ),
-                                  posterUrl,
+                                  imageUrl: posterUrl,
                                   fit: BoxFit.cover,
-                                  errorBuilder: (_, _, _) =>
-                                      const PosterFallback(icon: Icons.movie),
+                                  placeholder: const PosterFallback(
+                                    icon: Icons.movie,
+                                  ),
+                                  errorWidget: const PosterFallback(
+                                    icon: Icons.movie,
+                                  ),
                                 )
                               : const PosterFallback(icon: Icons.movie),
                         ),

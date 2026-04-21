@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../../../core/widgets/app_network_image.dart';
 import '../../../domain/entities/movie_entity.dart';
 import 'poster_fallback.dart';
 import 'poster_skeleton.dart';
@@ -44,18 +45,11 @@ class MovieCard extends StatelessWidget {
                 child: SizedBox(
                   height: posterHeight,
                   child: movie.posterUrl != null && movie.posterUrl!.isNotEmpty
-                      ? Image.network(
-                          movie.posterUrl!,
+                      ? AppNetworkImage(
+                          imageUrl: movie.posterUrl!,
                           fit: BoxFit.cover,
-                          errorBuilder: (_, _, _) =>
-                              PosterFallback(icon: fallbackIcon),
-                          loadingBuilder: (context, child, loadingProgress) {
-                            if (loadingProgress == null) {
-                              return child;
-                            }
-
-                            return const PosterSkeleton();
-                          },
+                          placeholder: const PosterSkeleton(),
+                          errorWidget: PosterFallback(icon: fallbackIcon),
                         )
                       : PosterFallback(icon: fallbackIcon),
                 ),
