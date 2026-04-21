@@ -4,7 +4,6 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../../core/providers/shared_preferences_provider.dart';
 import '../components/home/empty_section_state.dart';
 import '../components/home/home_app_bar_title.dart';
 import '../components/home/home_error_state.dart';
@@ -36,8 +35,6 @@ class _HomePageState extends ConsumerState<HomePage> {
   }
 
   Future<void> _loadHomeSections() async {
-    await ref.read(sharedPreferencesProvider.future);
-
     await Future.wait([
       ref.read(nowPlayingNotifierProvider.notifier).fetchInitial(),
       ref.read(popularMoviesNotifierProvider.notifier).fetchInitial(),

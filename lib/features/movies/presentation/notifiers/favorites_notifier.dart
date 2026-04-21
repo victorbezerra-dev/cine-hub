@@ -1,4 +1,3 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart' show AsyncData;
 import 'package:flutter_riverpod/legacy.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -8,11 +7,7 @@ const _favoriteMovieIdsKey = 'favorite_movie_ids';
 
 final favoritesNotifierProvider =
     StateNotifierProvider<FavoritesNotifier, Set<int>>((ref) {
-      final prefsAsync = ref.watch(sharedPreferencesProvider);
-      final SharedPreferences? preferences = switch (prefsAsync) {
-        AsyncData<SharedPreferences>(:final value) => value,
-        _ => null,
-      };
+      final preferences = ref.watch(sharedPreferencesProvider);
 
       return FavoritesNotifier(preferences);
     });
@@ -22,11 +17,11 @@ class FavoritesNotifier extends StateNotifier<Set<int>> {
     _loadFavorites();
   }
 
-  final SharedPreferences? _preferences;
+  final SharedPreferences _preferences;
 
   void _loadFavorites() {
     final storedIds =
-        _preferences?.getStringList(_favoriteMovieIdsKey) ?? <String>[];
+        _preferences.getStringList(_favoriteMovieIdsKey) ?? <String>[];
     state = storedIds.map(int.parse).toSet();
   }
 
@@ -41,7 +36,7 @@ class FavoritesNotifier extends StateNotifier<Set<int>> {
 
     state = nextState;
 
-    await _preferences?.setStringList(
+    await _preferences.setStringList(
       _favoriteMovieIdsKey,
       nextState.map((id) => id.toString()).toList(),
     );
