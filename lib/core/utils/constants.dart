@@ -16,4 +16,6 @@ class Settings {
   static const String nowPlayingPath = '/movie/now_playing';
   static const String popularMoviesPath = '/movie/popular';
   static const String configurationPath = '/configuration';
+
+  static String movieDetailsPath(int movieId) => '/movie/$movieId';
 }

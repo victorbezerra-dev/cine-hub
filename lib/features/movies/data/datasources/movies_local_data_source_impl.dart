@@ -2,8 +2,10 @@ import 'dart:convert';
 
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../domain/entities/movie_details_entity.dart';
 import '../../domain/entities/movie_page_response_entity.dart';
 import '../infra/interfaces/movies_local_data_source.dart';
+import 'mappers/movie_details_mapper.dart';
 import 'mappers/movie_page_response_local_mapper.dart';
 
 class MoviesLocalDataSourceImpl implements MoviesLocalDataSource {
@@ -22,6 +24,21 @@ class MoviesLocalDataSourceImpl implements MoviesLocalDataSource {
   }
 
   @override
+  Future<MovieDetailsEntity?> getMovieDetails(int movieId) async {
+    final rawValue = _preferences.getString(_movieDetailsKey(movieId));
+    if (rawValue == null || rawValue.isEmpty) {
+      return null;
+    }
+
+    final decoded = jsonDecode(rawValue);
+    if (decoded is! Map<String, dynamic>) {
+      return null;
+    }
+
+    return MovieDetailsMapper.fromLocalMap(decoded);
+  }
+
+  @override
   Future<void> saveNowPlaying(MoviePageResponseEntity response) async {
     await _write(_nowPlayingKey(response.page), response);
   }
@@ -29,6 +46,14 @@ class MoviesLocalDataSourceImpl implements MoviesLocalDataSource {
   @override
   Future<void> savePopularMovies(MoviePageResponseEntity response) async {
     await _write(_popularKey(response.page), response);
+  }
+
+  @override
+  Future<void> saveMovieDetails(MovieDetailsEntity response) async {
+    await _preferences.setString(
+      _movieDetailsKey(response.id),
+      jsonEncode(MovieDetailsMapper.toMap(response)),
+    );
   }
 
   Future<MoviePageResponseEntity?> _read(String key) async {
@@ -53,4 +78,6 @@ class MoviesLocalDataSourceImpl implements MoviesLocalDataSource {
   String _nowPlayingKey(int page) => 'movies_cache_now_playing_$page';
 
   String _popularKey(int page) => 'movies_cache_popular_$page';
+
+  String _movieDetailsKey(int movieId) => 'movies_cache_details_$movieId';
 }

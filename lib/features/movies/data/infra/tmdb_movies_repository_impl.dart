@@ -3,6 +3,7 @@ import 'package:dio/dio.dart';
 import '../../../../core/errors/client_http_failures.dart';
 import '../../../../core/network/connectivity_service.dart';
 import '../../../../core/utils/result.dart';
+import '../../domain/entities/movie_details_entity.dart';
 import '../../domain/entities/movie_page_response_entity.dart';
 import '../../domain/repositories/movies_repository.dart';
 import '../infra/interfaces/movies_local_data_source.dart';
@@ -40,6 +41,45 @@ class TmdbMoviesRepositoryImpl implements MoviesRepository {
       loadRemote: () => _remoteDataSource.getPopularMovies(page: page),
       saveLocal: _localDataSource.savePopularMovies,
     );
+  }
+
+  @override
+  Future<Result<MovieDetailsEntity>> getMovieDetails(int movieId) async {
+    final localResult = await _localDataSource.getMovieDetails(movieId);
+
+    if (!await _connectivityService.isOnline) {
+      if (localResult != null) {
+        return CachedFallbackSuccess<MovieDetailsEntity>(
+          localResult,
+          message: offlineMessage,
+        );
+      }
+
+      return Error<MovieDetailsEntity>(
+        NoInternetConection(message: offlineMessage),
+      );
+    }
+
+    try {
+      final result = await _remoteDataSource.getMovieDetails(movieId);
+      await _localDataSource.saveMovieDetails(result);
+      return Success<MovieDetailsEntity>(result);
+    } catch (exception) {
+      if (_isOfflineError(exception)) {
+        if (localResult != null) {
+          return CachedFallbackSuccess<MovieDetailsEntity>(
+            localResult,
+            message: offlineMessage,
+          );
+        }
+
+        return Error<MovieDetailsEntity>(
+          NoInternetConection(message: offlineMessage),
+        );
+      }
+
+      return Error<MovieDetailsEntity>(Exception(exception.toString()));
+    }
   }
 
   Future<Result<MoviePageResponseEntity>> _fetchMoviesPage({

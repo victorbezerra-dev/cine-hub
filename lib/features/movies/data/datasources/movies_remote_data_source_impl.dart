@@ -5,8 +5,10 @@ import 'package:dio/dio.dart';
 import '../../../../core/errors/client_http_failures.dart';
 import '../../../../core/network/interfaces/i_http_client.dart';
 import '../../../../core/utils/constants.dart';
+import '../../domain/entities/movie_details_entity.dart';
 import '../../domain/entities/movie_page_response_entity.dart';
 import '../infra/interfaces/movies_remote_data_source.dart';
+import 'mappers/movie_details_mapper.dart';
 import 'mappers/movie_page_response_mapper.dart';
 import 'mappers/tmdb_configuration_mapper.dart';
 import 'models/tmdb_configuration_model.dart';
@@ -42,6 +44,21 @@ class TmdbMoviesRemoteDataSourceImpl implements MoviesRemoteDataSource {
     final configuration = await _getConfiguration();
 
     return MoviePageResponseMapper.fromMap(
+      response,
+      imageBaseUrl: configuration.secureBaseUrl,
+      posterSize: configuration.resolvePosterSize(),
+      backdropSize: configuration.resolveBackdropSize(),
+    );
+  }
+
+  @override
+  Future<MovieDetailsEntity> getMovieDetails(int movieId) async {
+    final response = await _getJsonMap(
+      path: Settings.movieDetailsPath(movieId),
+    );
+    final configuration = await _getConfiguration();
+
+    return MovieDetailsMapper.fromMap(
       response,
       imageBaseUrl: configuration.secureBaseUrl,
       posterSize: configuration.resolvePosterSize(),
