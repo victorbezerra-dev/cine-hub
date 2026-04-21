@@ -3,6 +3,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../../core/providers/connectivity_provider.dart';
 import '../../data/infra/tmdb_movies_repository_impl.dart';
@@ -160,7 +161,13 @@ class _HomePageState extends ConsumerState<HomePage> {
             onFavoriteTap: () => ref
                 .read(favoritesNotifierProvider.notifier)
                 .toggleFavorite(movies[index].id),
-            onTap: () {},
+            onTap: () => context.push(
+              '/movie/${movies[index].id}',
+              extra: <String, dynamic>{
+                'movie': movies[index],
+                'heroTag': '$sectionKey-${movies[index].id}',
+              },
+            ),
           ),
         );
       },
